@@ -1,3 +1,11 @@
+const indexedDB =
+  window.indexedDB ||
+  window.mozIndexedDB ||
+  window.webkitIndexedDB ||
+  window.msIndexedDB ||
+  window.shimIndexedDB;
+
+
 let db;
 
 const request = indexedDB.open('budget_tracker', 1);
@@ -23,12 +31,12 @@ request.onerror = function(event) {
   console.log(event.target.errorCode);
 };
 
-function saveRecord(transaction) {
+function saveRecord(record) {
   const transaction = db.transaction(['new_item'], 'readwrite');
   const itemObjectStore = transaction.objectStore('new_item');
 
   // Add item to store
-  itemObjectStore.add(transaction);
+  itemObjectStore.add(record);
 }
 
 function uploadTransactions() {

@@ -1,89 +1,88 @@
+const APP_PREFIX = 'my-site-cache-';
+const VERSION = 'v1';
 const CACHE_NAME = 'budget-tracker-v1';
-const DATA_CACHE_NAME = 'budget-tracker-v1';
+const DATA_CACHE_NAME = 'budget-cache-v1';
 
 const FILES_TO_CACHE = [
-  '/',
   '/index.html',
   '/manifest.json',
-  '/index.js',
-  '/idb.js',
-  '/assets/css/style.css',
-  '/assets/images/icons/icon-72x72.png',
-  '/assets/images/icons/icon-96x96.png',
-  '/assets/images/icons/icon-128x128.png',
-  '/assets/images/icons/icon-144x144.png',
-  '/assets/images/icons/icon-152x152.png',
-  '/assets/images/icons/icon-192x192.png',
-  '/assets/images/icons/icon-384x384.png',
-  '/assets/images/icons/icon-512x512.png'
+  './js/idb.js',
+  './js/index.js',
+  './css/styles.css',
+  './icons/icon-72x72.png',
+  './icons/icon-96x96.png',
+  './icons/icon-128x128.png',
+  './icons/icon-144x144.png',
+  './icons/icon-152x152.png',
+  './icons/icon-192x192.png',
+  './icons/icon-384x384.png',
+  './icons/icon-512x512.png'
 ];
 
-// Install the service worker
-self.addEventListener('install', function(evt) {
-  evt.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('Your files were pre-cached successfully!');
-      return cache.addAll(FILES_TO_CACHE);
-    })
-  );
+// Cache resources
+self.addEventListener("install", function(event) {
+    // Perform install steps
+    event.waitUntil(
+      caches.open(CACHE_NAME).then(function(cache) {
+        console.log('installing cache : ' + CACHE_NAME)
+        return cache.addAll(FILES_TO_CACHE);
+      })
+    );
+  });
+  
 
-  self.skipWaiting();
-});
-
-// Activate the service worker 
-// Remove old data from the cache
-self.addEventListener('activate', function(evt) {
-  evt.waitUntil(
-    caches.keys().then(keyList => {
-      return Promise.all(
-        keyList.map(key => {
-          if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
-            console.log('Removing old cache data', key);
-            return caches.delete(key);
-          }
-        })
-      );
-    })
-  );
-
-  self.clients.claim();
-});
-
-// Re-route fetch requests
-self.addEventListener('fetch', function(evt) {
-  if (evt.request.url.includes('/api/')) {
-    evt.respondWith(
-      caches
-        .open(DATA_CACHE_NAME)
-        .then(cache => {
-          return fetch(evt.request)
+// Respond with cached resources
+self.addEventListener("fetch", function(event) {
+    // cache all get requests to /api routes
+    if (event.request.url.includes("/api/")) {
+      event.respondWith(
+        caches.open(DATA_CACHE_NAME).then(cache => {
+          return fetch(event.request)
             .then(response => {
+              // If the response was good, clone it and store it in the cache.
               if (response.status === 200) {
-                cache.put(evt.request.url, response.clone());
+                cache.put(event.request.url, response.clone());
               }
-
               return response;
             })
             .catch(err => {
-              return cache.match(evt.request);
+              // Network request failed, try to get it from the cache.
+              return cache.match(event.request);
             });
-        })
-        .catch(err => console.log(err))
+        }).catch(err => console.log(err))
+      );
+      return;
+    }
+    event.respondWith(
+      fetch(event.request).catch(function() {
+        return caches.match(event.request).then(function(response) {
+          if (response) {
+            return response;
+          } else if (event.request.headers.get("accept").includes("text/html")) {
+            // return the cached home page for all requests for html pages
+            return caches.match("/");
+          }
+        });
+      })
     );
-
-    return;
-  }
-
-  // Respond to the fetches from cache
-  evt.respondWith(
-    fetch(evt.request).catch(function() {
-      return caches.match(evt.request).then(function(response) {
-        if (response) {
-          return response;
-        } else if (evt.request.headers.get('accept').includes('text/html')) {
-          return caches.match('/');
-        }
-      });
-    })
-  );
-});
+  });
+  // Delete outdated caches
+  self.addEventListener('activate', function (e) {
+    e.waitUntil(
+      caches.keys().then(function (keyList) {
+        // `keyList` contains all cache names under your username.github.io
+        // filter out ones that has this app prefix to create white list
+        let cacheKeeplist = keyList.filter(function (key) {
+          return key.indexOf(APP_PREFIX);
+        })
+        // add current cache name to white list
+        cacheKeeplist.push(CACHE_NAME);
+        return Promise.all(keyList.map(function (key, i) {
+          if (cacheKeeplist.indexOf(key) === -1) {
+            console.log('deleting cache : ' + keyList[i] );
+            return caches.delete(keyList[i]);
+          }
+        }));
+      })
+    );
+  });
