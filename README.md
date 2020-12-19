@@ -10,7 +10,7 @@ https://budget-planner-pwa.herokuapp.com/
 
 ## Screenshots
 ### Budget Tracker Deskop
-![Weather Dashboard](https://github.com/AmandaGuerriero/budget-tracker/blob/master/assets/images/budget-tracker.png?raw=true)
+![Budget Tracker](https://github.com/AmandaGuerriero/budget-tracker/blob/master/public/images/budget-tracker.png?raw=true)
 
 ## Table of Contents
 * [Installation Details](#install)
