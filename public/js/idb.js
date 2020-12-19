@@ -85,5 +85,4 @@ function deletePending() {
   itemObjectStore.clear();
 }
 
-// listen for app coming back online
 window.addEventListener("online", uploadTransactions);
